@@ -1,0 +1,19 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Chat WebSocket server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bidirectional-map": "^1.0.4",
+    "bimap": "0.0.15",
+    "he": "^1.2.0",
+    "uuid": "^3.3.2",
+    "websocket": "^1.0.28",
+    "ws": "^6.1.2"
+  }
+}
