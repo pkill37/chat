@@ -1,15 +1,11 @@
-const webSocketsServerPort = 1337
+const PORT = process.env.PORT || 1337
 const WebSocket = require('ws')
 const http = require('http')
 const he = require('he')
-const log = (message) => console.log('[' + new Date().toISOString() + '] ' + message)
 const uuidv4 = require('uuid/v4')
 const BiMap = require('bidirectional-map')
 
-const pairs = new BiMap()
-
-const httpServer = http.createServer((request, response) => {})
-httpServer.listen(webSocketsServerPort, () => log('Server is listening on port ' + webSocketsServerPort))
+const log = (message) => console.log('[' + new Date().toISOString() + '] ' + message)
 
 const printPairs = (pairs) => {
     log(`${pairs.size} current pairs`)
@@ -18,6 +14,11 @@ const printPairs = (pairs) => {
     }
 }
 
+const pairs = new BiMap()
+
+const httpServer = http.createServer((request, response) => {})
+httpServer.listen(PORT, () => log(`Server is listening on port ${PORT}`))
+
 const wsServer = new WebSocket.Server({ server: httpServer })
 wsServer.on('connection', (ws, request) => {
   ws.ip = request.connection.remoteAddress
@@ -25,14 +26,13 @@ wsServer.on('connection', (ws, request) => {
   log(`New connection from origin ${ws.ip} has been given the ID ${ws.id}.`)
 
   // Pair the new connection with the first unpaired existing client
-  wsServer.clients.forEach((client) => {
-    if(client !== ws) {
-      if (client.readyState === WebSocket.OPEN && pairs.getKey(client) === undefined && pairs.get(client) === undefined) {
-        pairs.set(ws, client)
-        printPairs(pairs)
-      }
+  for (let client of wsServer.clients) {
+    if (client !== ws && client.readyState === WebSocket.OPEN && pairs.getKey(client) === undefined && pairs.get(client) === undefined) {
+      pairs.set(ws, client)
+      printPairs(pairs)
+      break
     }
-  })
+  }
 
   // Route messages to the respective paired client
   ws.on('message', (message) => {
