@@ -50,6 +50,17 @@ wsServer.on('connection', (ws, request) => {
   ws.on('close', () => {
     log(`Peer ${ws.id} disconnected.`)
     pairs.delete(ws)
-    printPairs(pairs)
+    pairs.deleteValue(ws)
+
+    // Repair the client that lost its pair with the first unpaired existing client
+    for (let client1 of wsServer.clients) {
+      for (let client2 of wsServer.clients) {
+        if (client1 !== client2 && client1.readyState === WebSocket.OPEN && pairs.getKey(client1) === undefined && pairs.get(client1) === undefined) {
+          pairs.set(client2, client1)
+          printPairs(pairs)
+          break
+        }
+      }
+    }
   })
 })
