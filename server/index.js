@@ -36,11 +36,14 @@ wsServer.on('connection', (ws, request) => {
 
   // Route messages to the respective paired client
   ws.on('message', (message) => {
-    log(`Routing message from ${ws.id} to ${pairs.get(ws).id}`)
-
-    // Send message to the paired client
-    const obj = { time: (new Date()).getTime(), text: he.encode(message) }
-    const json = JSON.stringify({ type: 'message', data: obj })
+    const from = ws
+    const to = pairs.has(ws) ? pairs.get(ws) : pairs.getKey(ws)
+    if (to) {
+      log(`Routing message from ${from.id} to ${to.id}`)
+      const obj = { time: (new Date()).getTime(), text: he.encode(message) }
+      const json = JSON.stringify({ type: 'message', data: obj })
+      to.send(json)
+    }
   })
 
   // Unpair clients when either closes
