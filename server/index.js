@@ -20,36 +20,45 @@ wsServer.on('connection', (ws, request) => {
 
   // Pair the new connection with the first unpaired existing client
   if(pairs.pair(wsServer.clients)) {
+    // Notify both clients that they've been paired
+    for(let p of [ws, pairs.get(ws)])
+      p.send(JSON.stringify({ type: 'pair' }))
     utils.success(`Pairing successful! ${pairs.toString()}`)
   } else {
     utils.warning(`Pairing unsuccessful! ${pairs.toString()}`)
   }
 
-  // Route messages to the respective paired client
+  // Route messages
   ws.on('message', (message) => {
     const from = ws
     const to = pairs.get(ws)
 
+    // Build packet
+    const packet = JSON.stringify({ type: 'message', time: (new Date()).getTime(), text: he.encode(message) })
+
+    // Send packet to destination
     if (to) {
       utils.success(`Routing message from ${from.id} to ${to.id}.`)
-      const obj = { time: (new Date()).getTime(), text: he.encode(message) }
-      const json = JSON.stringify({ type: 'message', data: obj })
-      to.send(json)
+      to.send(packet)
     } else {
-      utils.error(`Could not route message from ${from.id} to undefined destination.`)
+      utils.error(`Could not route message from origin ${from.id} to undefined destination.`)
+    }
+
+    // Send (processed) copy back to origin
+    if (from) {
+      from.send(packet)
+    } else {
+      utils.error(`Could not re-route message back to origin ${from.id}.`)
     }
   })
 
-  // Unpair clients when either closes
+  // Unpair clients when either closes and notify the other party
   ws.on('close', () => {
-    pairs.delete(ws)
-    utils.info(`Client ${ws.id} disconnected. Attempting to repair the orphan client with another client...`)
-
-    // Attempt to repair the client that lost its pair with the first unpaired existing client
-    if(pairs.pair(wsServer.clients)) {
-      utils.success(`Pairing successful! ${pairs.toString()}`)
-    } else {
-      utils.warning(`Pairing unsuccessful! ${pairs.toString()}`)
+    const unpaired = pairs.get(ws)
+    if(unpaired) {
+        pairs.delete(ws)
+        unpaired.send(JSON.stringify({ type: 'unpair' }))
+        utils.info(`Client ${ws.id} disconnected. Attempting to repair the orphan client with another client...`)
     }
   })
 })
