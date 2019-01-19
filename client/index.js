@@ -6,6 +6,12 @@ let App = function({render}) {
     render: render,
   }
 
+  // Confirm user wants to close app
+  window.addEventListener('beforeunload', function (e) {
+    e.preventDefault()
+    e.returnValue = ''
+  })
+
   let ws = new WebSocket('ws://127.0.0.1:1337')
   ws.onmessage = (message) => recvMessageHandler(JSON.parse(message.data))
 
