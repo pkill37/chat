@@ -57,9 +57,9 @@ wsServer.on('connection', (ws, request) => {
   ws.on('close', () => {
     const unpaired = pairs.get(ws)
     if(unpaired) {
-        pairs.delete(ws)
-        unpaired.send(JSON.stringify({ type: 'unpair' }))
-        utils.info(`Client ${ws.id} disconnected. Attempting to repair the orphan client with another client...`)
+      pairs.delete(ws)
+      unpaired.send(JSON.stringify({ type: 'unpair' }))
+      utils.info(`Client ${ws.id} disconnected. Attempting to repair the orphan client with another client...`)
     }
 
     // Repair orphan with existing clients (thus avoiding waiting for a new connection)

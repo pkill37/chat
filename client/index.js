@@ -17,17 +17,18 @@ let App = function({render}) {
 
   let representation = () => {
     if (!state.paired) {
-        return `<div><p>Waiting to pair...</p></div>`
+      return `<div><p>Waiting to pair...</p></div>`
     } else if (!window.WebSocket) {
-        return `<div><p>WebSocket is not supported...</p></div>`
+      return `<div><p>WebSocket is not supported...</p></div>`
     } else {
-        return `<div>
-            <h4>Chat</h4>
-            ${state.messages.map(message => `<p>[${message.time}] ${message.text}</p>`)}
-            <form onsubmit="sendMessage()">
-                <input id="message" value=${state.message}>
-                <button>Send</button>
-            </form>
+      return `
+        <div>
+          <h4>Chat</h4>
+          ${state.messages.map(message => `<p>[${message.time}] ${message.text}</p>`)}
+          <form onsubmit="sendMessage()">
+            <input id="message" value=${state.message}>
+            <button>Send</button>
+          </form>
         </div>`
     }
   }
