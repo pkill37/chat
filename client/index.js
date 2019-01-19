@@ -1,84 +1,58 @@
-let render = function (component, initState = {}, mountNode) {
-  initState.render = function(stateRepresentation, options = {}) {
-    const start = (options.focus) ? document.getElementById(options.focus).selectionStart : 0;
+let App = function({render}) {
+  let state = {
+    messages: [],
+    message: '',
+    paired: false,
+    render: render,
+  }
 
-    (document.getElementById(mountNode) || {}).innerHTML = stateRepresentation
+  let ws = new WebSocket('ws://127.0.0.1:1337')
+  ws.onmessage = (message) => recvMessageHandler(JSON.parse(message.data))
 
-    if (options.focus) {
-      let f = document.getElementById(options.focus)
-      f.selectionStart = start
-      f.focus()
+  let representation = () => {
+    if (!state.paired) {
+        return `<div><p>Waiting to pair...</p></div>`
+    } else if (!window.WebSocket) {
+        return `<div><p>WebSocket is not supported...</p></div>`
+    } else {
+        return `<div>
+            <h4>Chat</h4>
+            ${state.messages.map(message => `<p>[${message.time}] ${message.text}</p>`)}
+            <form onsubmit="sendMessage()">
+                <input id="message" value=${state.message}>
+                <button>Send</button>
+            </form>
+        </div>`
     }
   }
 
-  let stateRepresentation = component(initState)
-
-  initState.render((typeof stateRepresentation === 'function' ) ? stateRepresentation() : stateRepresentation)
-}
-
-let intent = function(i, f) {
-  window[i || '_'] = f
-}
-
-let value = function(el) {
-  return document.getElementById(el).value
-}
-
-let ChatApp = function({render}) {
-  let state = { messages: [], message: '', render }
-
-  if (!window.WebSocket) {
-      console.log('no websocket support')
-  }
-
-  var connection = new WebSocket('ws://127.0.0.1:1337')
-  connection.onopen = function () {
-    console.log('open')
-  }
-
-  connection.onerror = (error) => {
-    console.log('error')
-  }
-
-  connection.onmessage = (message) => {
-    let json
-    try {
-      json = JSON.parse(message.data)
-      console.log('Received', json)
-    } catch (e) {
-      console.log('Invalid JSON: ', message.data)
-      return
-    }
-  }
-
-  intent("addMessage", function(e) {
-    const newMessage = {
-      text: value("message"),
-      id: Date.now()
-    }
-    state.messages.push(newMessage)
-    connection.send(newMessage.text)
+  let sendMessageHandler = (newMessage) => {
+    ws.send(newMessage)
     state.message= ''
     state.render(representation())
     return false
-  })
+  }
 
-  let representation = () => `
-      <div>
-        <h4>Chat</h4>
-        ${ChatMessages({messages:state.messages})}
-        <form onsubmit="addMessage()">
-          <input id="message" value=${state.message}>
-          <button>Send</button>
-        </form>
-      </div>`
+  let recvMessageHandler = (newMessage) => {
+    if(newMessage.type === "message") {
+      state.messages.push(newMessage)
+    } else if(newMessage.type === "pair") {
+      state.messages = []
+      state.paired = true
+    } else if(newMessage.type === "unpair") {
+      state.messages = []
+      state.paired = false
+    }
+
+    state.render(representation())
+    return false
+  }
+
+  intent("sendMessage", function(e) {
+    sendMessageHandler(value("message"))
+  })
 
   return representation
 }
 
-let ChatMessages = ({messages, onclick}) => `
-    <ul>
-      ${messages.map(message => `<li key="${message.id}" ${(onclick) ? `onclick="${onclick}(${message.id})"` : ``}>${message.text}</li>`)}
-    </ul>`
-
-render(ChatApp, {}, "chat")
+render(App, {}, "app")
