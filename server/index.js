@@ -22,7 +22,8 @@ wsServer.on('connection', (ws, request) => {
   if(pairs.pair(wsServer.clients)) {
     // Notify both clients that they've been paired
     for(let p of [ws, pairs.get(ws)])
-      p.send(JSON.stringify({ type: 'pair' }))
+      if(p)
+        p.send(JSON.stringify({ type: 'pair' }))
     utils.success(`Pairing successful! ${pairs.toString()}`)
   } else {
     utils.warning(`Pairing unsuccessful! ${pairs.toString()}`)
@@ -59,6 +60,16 @@ wsServer.on('connection', (ws, request) => {
         pairs.delete(ws)
         unpaired.send(JSON.stringify({ type: 'unpair' }))
         utils.info(`Client ${ws.id} disconnected. Attempting to repair the orphan client with another client...`)
+    }
+
+    // Repair orphan with existing clients (thus avoiding waiting for a new connection)
+    if(pairs.pair(wsServer.clients)) {
+      for(let p of [unpaired, pairs.get(unpaired)])
+        if(p)
+          p.send(JSON.stringify({ type: 'pair' }))
+      utils.success(`Pairing successful! ${pairs.toString()}`)
+    } else {
+      utils.warning(`Pairing unsuccessful! ${pairs.toString()}`)
     }
   })
 })
